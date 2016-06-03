@@ -10,6 +10,8 @@ import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import java.awt.Font;
 
+// Classe responsável por manter a GUI ativa e gerenciar as entradas do usuário local
+
 public class MainAppFrame extends JFrame implements KeyListener{
 
 	// Variável gerada automaticamente pelo WindowBuilder
@@ -23,10 +25,7 @@ public class MainAppFrame extends JFrame implements KeyListener{
 	
 	// ID única do usuário local
 	public static int myshipID;
-	
-	// Instância do Multiplayer
-	public static Multiplayer mp;
-	
+		
 	// Servidor e porta padrões para solicitar os IPs dos peers
 	public static final String gameServer = "192.168.25.64";
 	public static final int gameServerUDP = 6666;
@@ -56,6 +55,7 @@ public class MainAppFrame extends JFrame implements KeyListener{
 				// Inicialização da Engine
 				Engine.iniciar();
 				Engine.addShip(aShip);
+				Engine.executar();
 				
 				// Como a nave foi a primeira a ser instanciada, recupera o valor de ID fornecido a ela
 				myshipID = Engine.presentItems.get(0).id;
@@ -80,11 +80,10 @@ public class MainAppFrame extends JFrame implements KeyListener{
 				printTable();
 				
 				// Inicialização das funcionalidades online
-				// TODO: Tornar métodos de Multiplayer estáticos 
 				try {
-					mp = new Multiplayer(gameServer, gameServerUDP);
-					mp.connect2GameServer(iniX, iniY, iniOR);
-					mp.receberMensagens();
+					Multiplayer.inicio(gameServer, gameServerUDP);
+					Multiplayer.connect2GameServer(iniX, iniY, iniOR);
+					Multiplayer.receberMensagens();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -200,7 +199,7 @@ public class MainAppFrame extends JFrame implements KeyListener{
             	Engine.deadShip(getShipByID(myshipID));
             	
             	// Envia a mensagem de DEAD para os demais players, confirmando sua remoção do jogo
-            	mp.enviarMensagem("D;");
+            	Multiplayer.enviarMensagem("D;");
             }
 		});
 		t.start();
@@ -273,7 +272,7 @@ public class MainAppFrame extends JFrame implements KeyListener{
 					Engine.moveShip(ship, newpos, ship.orientation);
 					
 					// Envia mensagem p/ todos avisando que mudou posição
-					mp.enviarMensagem("P;"+newpos[0]+","+newpos[1]+":"+ship.orientation);
+					Multiplayer.enviarMensagem("P;"+newpos[0]+","+newpos[1]+":"+ship.orientation);
 					
 				// Se a tecla for a de atirar, atire (se possível)
 				} else if (key == Constants.SHOOT) {
@@ -294,7 +293,7 @@ public class MainAppFrame extends JFrame implements KeyListener{
 					System.out.println("[USER] Solicitacao de fireball da Nave " + myshipID + "em (" + newpos[0] + "," + newpos[1] + ")");
 					Engine.newFireball(ship);
 					// Envia mensagem p/ todos avisando que criou fireball
-					mp.enviarMensagem("F;"+newpos[0]+","+newpos[1]+":"+ship.orientation);
+					Multiplayer.enviarMensagem("F;"+newpos[0]+","+newpos[1]+":"+ship.orientation);
 					
 				// Se a tecla não corresponde à orientação, rotaciona
 				} else if ((key >= Constants.LEFT) &&(key <= Constants.DOWN)) {
@@ -302,7 +301,7 @@ public class MainAppFrame extends JFrame implements KeyListener{
 					Engine.moveShip(ship, ship.position, key);
 					
 					// Envia mensagem p/ todos avisando que mudou orientação
-					mp.enviarMensagem("P;"+ship.position[0]+","+ship.position[1]+":"+key);
+					Multiplayer.enviarMensagem("P;"+ship.position[0]+","+ship.position[1]+":"+key);
 					
 				} 
 			}
