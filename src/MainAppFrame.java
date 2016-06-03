@@ -195,6 +195,8 @@ public class MainAppFrame extends JFrame implements KeyListener{
             			}
             		}
             	}
+            	
+            	System.out.println("[USER] Solicitada remocao da Nave " + myshipID + " do jogo");
             	// Solicita à Engine a remoção da nave do usuário do mapa
             	Engine.deadShip(getShipByID(myshipID));
             	
@@ -290,14 +292,14 @@ public class MainAppFrame extends JFrame implements KeyListener{
 											newpos[1] = ship.position[1];
 											break;			
 					}
-					System.out.println("[USER] Solicitacao de fireball da Nave " + myshipID + "em (" + newpos[0] + "," + newpos[1] + ")");
+					System.out.println("[USER] Solicitacao de fireball da Nave " + myshipID + " em (" + newpos[0] + "," + newpos[1] + ")");
 					Engine.newFireball(ship);
 					// Envia mensagem p/ todos avisando que criou fireball
 					Multiplayer.enviarMensagem("F;"+newpos[0]+","+newpos[1]+":"+ship.orientation);
 					
 				// Se a tecla não corresponde à orientação, rotaciona
 				} else if ((key >= Constants.LEFT) &&(key <= Constants.DOWN)) {
-					System.out.println("[USER] Solicitacao de rotacao da Nave " + myshipID + " no sentido " + key);
+					System.out.println("[USER] Solicitacao de movimento da Nave " + myshipID + " no sentido " + key);
 					Engine.moveShip(ship, ship.position, key);
 					
 					// Envia mensagem p/ todos avisando que mudou orientação

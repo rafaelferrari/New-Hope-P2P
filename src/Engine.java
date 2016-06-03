@@ -31,7 +31,11 @@ public class Engine {
 	public static void iniciar() {
 		Engine.presentItems = new ArrayList<Item>();
 		Engine.presentIDs = new ArrayList<Integer>();
-		rand = new Random();
+		rand = new Random();		
+	}
+	
+	// Método de execução da Engine
+	public static void executar() {
 		moveFireballs();
 		calcColision();
 	}
@@ -70,7 +74,7 @@ public class Engine {
 				Engine.tablechanged = true;
 			}
 		}
-		System.out.println("[ENGINE]  Nave " + target.id + " moveu-se para (" + newpos[0] + "," + newpos[1] + "): " + target.orientation);
+		System.out.println("[ENGINE] Nave " + target.id + " moveu-se para (" + newpos[0] + "," + newpos[1] + "): " + target.orientation);
 	}
 	
 	// Função que cria a fireball de uma nave (parte da interface)
