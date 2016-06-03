@@ -4,6 +4,7 @@ import javax.swing.JFrame;
 import java.awt.GridLayout;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.net.DatagramPacket;
 
 import javax.swing.ImageIcon;
 
@@ -202,6 +203,7 @@ public class MainAppFrame extends JFrame implements KeyListener{
             	
             	// Envia a mensagem de DEAD para os demais players, confirmando sua remoção do jogo
             	Multiplayer.enviarMensagem("D;");
+            	
             }
 		});
 		t.start();
@@ -278,24 +280,10 @@ public class MainAppFrame extends JFrame implements KeyListener{
 					
 				// Se a tecla for a de atirar, atire (se possível)
 				} else if (key == Constants.SHOOT) {
-					switch(ship.orientation) {
-					case Constants.LEFT:	newpos[0] = ship.position[0];
-											newpos[1] = ship.position[1]-1;
-											break;
-					case Constants.RIGHT:	newpos[0] = ship.position[0];
-											newpos[1] = ship.position[1]+1;
-											break;
-					case Constants.UP:		newpos[0] = ship.position[0]-1;
-											newpos[1] = ship.position[1];
-											break;
-					case Constants.DOWN:	newpos[0] = ship.position[0]+1;
-											newpos[1] = ship.position[1];
-											break;			
-					}
-					System.out.println("[USER] Solicitacao de fireball da Nave " + myshipID + " em (" + newpos[0] + "," + newpos[1] + ")");
+					System.out.println("[USER] Solicitacao de fireball da Nave " + myshipID + " em (" + ship.position[0] + "," + ship.position[1] + "): " + ship.orientation);
 					Engine.newFireball(ship);
 					// Envia mensagem p/ todos avisando que criou fireball
-					Multiplayer.enviarMensagem("F;"+newpos[0]+","+newpos[1]+":"+ship.orientation);
+					Multiplayer.enviarMensagem("F;"+ship.position[0]+","+ship.position[1]+":"+ship.orientation);
 					
 				// Se a tecla não corresponde à orientação, rotaciona
 				} else if ((key >= Constants.LEFT) &&(key <= Constants.DOWN)) {
