@@ -1,114 +1,113 @@
-import java.awt.BorderLayout;
 import java.awt.EventQueue;
-import java.util.ArrayList;
 
 import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.border.EmptyBorder;
 import java.awt.GridLayout;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.io.IOException;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 
-import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 
-import java.awt.Component;
-import javax.swing.Box;
 import javax.swing.JLabel;
 import java.awt.Font;
-import java.awt.FlowLayout;
 
 public class MainAppFrame extends JFrame implements KeyListener{
-	
-	// TODO: Este vetor só vale para uma tabela 10x10!!!!!!!!!!!!
+
+	// Variável gerada automaticamente pelo WindowBuilder
+	private static final long serialVersionUID = 5677102364360107436L;
+
+	// Vetor referente a cada posição de célula no mapa 
 	private static JLabel label[] = new JLabel[100];
+	
+	// Ícones referentes a cada tipo de célula
 	private static ImageIcon bg_icon, fb_icon, ss_iconl, ss_iconr, ss_iconu, ss_icond, ss_icon2l, ss_icon2r, ss_icon2u, ss_icon2d;
 	
-	// ID UNICA DO USUARIO
+	// ID única do usuário local
 	public static int myshipID;
 	
-	// Multiplayer
+	// Instância do Multiplayer
 	public static Multiplayer mp;
+	
+	// Servidor e porta padrões para solicitar os IPs dos peers
 	public static final String gameServer = "192.168.25.64";
 	public static final int gameServerUDP = 6666;
 	
+	// Posição e orientação iniciais da nave do usuário
 	public static final int iniX = 2;
 	public static final int iniY = 2;
 	public static final short iniOR = Constants.UP;
 	
-	/**
-	 * Launch the application.
-	 */
+	// Execução principal sequencial do jogo
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				
+				// Abertura da GUI 
+				MainAppFrame frame = null;
 				try {
-					MainAppFrame frame = new MainAppFrame();
+					frame = new MainAppFrame();
 					frame.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
 				
-//				ArrayList<Item> itens = new ArrayList<Item>();
-				Item aShip = new Item(iniX,iniY,iniOR,Constants.ITEM_SHIP,1234);
-				myshipID = 1234;
-//				itens.add(aShip);
-				Engine e = new Engine();
+				// Criação da nave do usuário
+				Item aShip = new Item(iniX,iniY,iniOR,Constants.ITEM_SHIP);
+				
+				// Inicialização da Engine
+				Engine.iniciar();
 				Engine.addShip(aShip);
-				bg_icon = e.createImageIcon("icons/bg.png");
-				fb_icon = e.createImageIcon("icons/fb2.png");
-				ss_iconl = e.createImageIcon("icons/ss3_l.png");
-				ss_iconr = e.createImageIcon("icons/ss3_r.png");
-				ss_iconu = e.createImageIcon("icons/ss3_u.png");
-				ss_icond = e.createImageIcon("icons/ss3_d.png");
 				
-				ss_icon2l = e.createImageIcon("icons/ss1_l.png");
-				ss_icon2r = e.createImageIcon("icons/ss1_r.png");
-				ss_icon2u = e.createImageIcon("icons/ss1_u.png");
-				ss_icon2d = e.createImageIcon("icons/ss1_d.png");
+				// Como a nave foi a primeira a ser instanciada, recupera o valor de ID fornecido a ela
+				myshipID = Engine.presentItems.get(0).id;
 				
+				// Inicialização das imagens 
+				bg_icon = frame.createImageIcon("icons/bg.png");
+				fb_icon = frame.createImageIcon("icons/fb2.png");
+				ss_iconl = frame.createImageIcon("icons/ss3_l.png");
+				ss_iconr = frame.createImageIcon("icons/ss3_r.png");
+				ss_iconu = frame.createImageIcon("icons/ss3_u.png");
+				ss_icond = frame.createImageIcon("icons/ss3_d.png");
+				
+				ss_icon2l = frame.createImageIcon("icons/ss1_l.png");
+				ss_icon2r = frame.createImageIcon("icons/ss1_r.png");
+				ss_icon2u = frame.createImageIcon("icons/ss1_u.png");
+				ss_icon2d = frame.createImageIcon("icons/ss1_d.png");
+				
+				// Inicialização de thread que checa se a nave do usuário está viva
 				isItDeadYet();
-				e.moveFireballs();
-//				e.readPlayerCmds();
-//				e.printTable();
-				printTable();
-				e.calcColision();
-					try {
-						mp = new Multiplayer(gameServer, gameServerUDP);
-					} catch (UnknownHostException | SocketException e2) {
-						// TODO Auto-generated catch block
-						e2.printStackTrace();
-					}
-					try {
-						mp.connect2GameServer(iniX, iniY, iniOR);
-					} catch (IOException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-					mp.receberMensagens();
-//					mp.enviarMensagem("P;1,2:3");
-			
 				
+				// Inicialização de thread responsável pelo desenho e atualização do mapa
+				printTable();
+				
+				// Inicialização das funcionalidades online
+				// TODO: Tornar métodos de Multiplayer estáticos 
+				try {
+					mp = new Multiplayer(gameServer, gameServerUDP);
+					mp.connect2GameServer(iniX, iniY, iniOR);
+					mp.receberMensagens();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		});
 	}
 	
+	// Thread responsável pelo desenho e atualização do mapa
 	public static void printTable() {
 		Thread t = new Thread(new Runnable() {           
 	        public void run() { 
+	        	// Variável da matriz correspondente ao mapa
 	        	Item[][] table = new Item[Constants.SIZE_V][Constants.SIZE_H];
+	        	
 				int[] posicao = {0, 0};
 				boolean tbchange;
 				
 				while(true) {
 					tbchange = false;
 					while(!tbchange) {
+						// Checa alterações a cada 50ms (20 FPS)
                 		try {
-    						Thread.sleep(100);
+    						Thread.sleep(50);
     					} catch (InterruptedException e) {
     						e.printStackTrace();
     					}
@@ -133,35 +132,29 @@ public class MainAppFrame extends JFrame implements KeyListener{
 						for(int j = 0; j < Constants.SIZE_H; j++) {
 							it = table[i][j];
 							if (it == null) {
-//								label[xy2label(i, j)].setText(" ");
 								label[xy2label(i, j)].setIcon(bg_icon);
 							} else if (it.type == Constants.ITEM_FB) {
-//								label[xy2label(i, j)].setText("o");
 								label[xy2label(i, j)].setIcon(fb_icon);
 							} else if (it.type == Constants.ITEM_SHIP){
 								if (it.orientation == Constants.LEFT)
-//									label[xy2label(i, j)].setText("<");
 									if (it.id == myshipID) {
 										label[xy2label(i, j)].setIcon(ss_iconl);
 									} else {
 										label[xy2label(i, j)].setIcon(ss_icon2l);
 									}
 								else if (it.orientation == Constants.RIGHT)
-//									label[xy2label(i, j)].setText(">");
 									if (it.id == myshipID) {
 										label[xy2label(i, j)].setIcon(ss_iconr);
 									} else {
 										label[xy2label(i, j)].setIcon(ss_icon2r);
 									}
 								else if (it.orientation == Constants.UP)
-//									label[xy2label(i, j)].setText("A");
 									if (it.id == myshipID) {
 										label[xy2label(i, j)].setIcon(ss_iconu);
 									} else {
 										label[xy2label(i, j)].setIcon(ss_icon2u);
 									}
 								else if (it.orientation == Constants.DOWN)
-//									label[xy2label(i, j)].setText("V");
 									if (it.id == myshipID) {
 										label[xy2label(i, j)].setIcon(ss_icond);
 									} else {
@@ -186,14 +179,170 @@ public class MainAppFrame extends JFrame implements KeyListener{
 		t.start();				
 	}
 	
-	public static int xy2label(int x, int y) {
-		// TODO: Esta relação só vale para uma tabela 10x10!!!!!!!!!!
-		return y + 10*x;
+	// Thread que verifica se a nave do usuário local morreu
+	public static void isItDeadYet() {
+		Thread t = new Thread(new Runnable() {
+            public void run() {             	
+            	while (true) {
+            		// A cada 50ms checa se houve colisão com nave de usuário local
+            		try {
+            			Thread.sleep(50);
+            		} catch (Exception e) {
+            			e.printStackTrace();
+            		}
+            		if (Engine.lastcolision != null) {
+            			if (Engine.lastcolision.id == myshipID) {
+            				break;
+            			}
+            		}
+            	}
+            	// Solicita à Engine a remoção da nave do usuário do mapa
+            	Engine.deadShip(getShipByID(myshipID));
+            	
+            	// Envia a mensagem de DEAD para os demais players, confirmando sua remoção do jogo
+            	mp.enviarMensagem("D;");
+            }
+		});
+		t.start();
+	}
+	
+	// Detector de teclas pressionadas para controle da nave local
+	// Faz interface com Engine referente a movimentação no mapa
+	// Faz interface com Multiplayer referente ao envio de dados para demais peers
+	@Override
+	public void keyPressed(KeyEvent e) {
+		
+		if (!Engine.presentItems.isEmpty()) {
+		
+			short key = Constants.IDLE;
+	        char c = e.getKeyChar();
+	        
+	        // Controles padrão do usuário (WASD + spacebar)
+	        switch(c) {
+	        case 'w':
+	        case 'W':
+	        			key = Constants.UP;
+	        			break;
+	        case 'A':
+	        case 'a':	key = Constants.LEFT;
+						break;
+	        case 'S':
+	        case 's':	key = Constants.DOWN;
+						break;
+	        case 'D':
+	        case 'd':	key = Constants.RIGHT;
+						break;
+	        case ' ':	key = Constants.SHOOT;
+						break;
+			default:	key = Constants.IDLE;
+						break;
+	        }
+	         
+	        short shipOrientation;
+	    	Item ship = null;
+	    	int[] newpos = {0,0};
+	    	
+	    	ship = getShipByID(myshipID);
+	    	
+			if (ship != null) {
+				shipOrientation= ship.orientation;
+				
+				// Se a tecla corresponde à orientação, anda
+				if (key == shipOrientation) {
+				        				
+					switch(key) {
+					case Constants.LEFT:	newpos[0] = ship.position[0];
+								newpos[1] = ship.position[1]-1;
+								break;
+					case Constants.RIGHT:	newpos[0] = ship.position[0];
+								newpos[1] = ship.position[1]+1;
+								break;
+					case Constants.UP:	newpos[0] = ship.position[0]-1;
+								newpos[1] = ship.position[1];
+								break;
+					case Constants.DOWN:	newpos[0] = ship.position[0]+1;
+								newpos[1] = ship.position[1];
+								break;			
+					}
+					
+					// Garante que o ship não saia da tabela
+					newpos[0] = Math.min(Constants.SIZE_V-1, Math.max(0, newpos[0]));
+					newpos[1] = Math.min(Constants.SIZE_H-1, Math.max(0, newpos[1]));
+					
+					System.out.println("[USER] Solicitacao de movimento da Nave " + myshipID + " no sentido " + key);
+					Engine.moveShip(ship, newpos, ship.orientation);
+					
+					// Envia mensagem p/ todos avisando que mudou posição
+					mp.enviarMensagem("P;"+newpos[0]+","+newpos[1]+":"+ship.orientation);
+					
+				// Se a tecla for a de atirar, atire (se possível)
+				} else if (key == Constants.SHOOT) {
+					switch(ship.orientation) {
+					case Constants.LEFT:	newpos[0] = ship.position[0];
+											newpos[1] = ship.position[1]-1;
+											break;
+					case Constants.RIGHT:	newpos[0] = ship.position[0];
+											newpos[1] = ship.position[1]+1;
+											break;
+					case Constants.UP:		newpos[0] = ship.position[0]-1;
+											newpos[1] = ship.position[1];
+											break;
+					case Constants.DOWN:	newpos[0] = ship.position[0]+1;
+											newpos[1] = ship.position[1];
+											break;			
+					}
+					System.out.println("[USER] Solicitacao de fireball da Nave " + myshipID + "em (" + newpos[0] + "," + newpos[1] + ")");
+					Engine.newFireball(ship);
+					// Envia mensagem p/ todos avisando que criou fireball
+					mp.enviarMensagem("F;"+newpos[0]+","+newpos[1]+":"+ship.orientation);
+					
+				// Se a tecla não corresponde à orientação, rotaciona
+				} else if ((key >= Constants.LEFT) &&(key <= Constants.DOWN)) {
+					System.out.println("[USER] Solicitacao de rotacao da Nave " + myshipID + " no sentido " + key);
+					Engine.moveShip(ship, ship.position, key);
+					
+					// Envia mensagem p/ todos avisando que mudou orientação
+					mp.enviarMensagem("P;"+ship.position[0]+","+ship.position[1]+":"+key);
+					
+				} 
+			}
+		}
+			
+	}
+	
+	// Conversão de coordenadas
+	private static int xy2label(int x, int y) {
+		// OBS: Esta relação só vale se o mapa é quadrado
+		return y + Constants.SIZE_H*x;
 		
 	}
-	/**
-	 * Create the frame.
-	 */
+
+	// Busca de item baseado no seu ID único
+	public static Item getShipByID(int shipid) {
+		Item found = null;
+		synchronized (Engine.mutex_presentItems) {
+			for (Item i : Engine.presentItems) {
+				if (i.id == shipid) {
+					found = i;
+					break;
+				}
+			}
+		}		
+		return found;
+	}
+	
+	// Retorna um ImageIcon ou nulo, caso o caminho seja inválido
+	public ImageIcon createImageIcon(String path) {
+	    java.net.URL imgURL = getClass().getResource(path);
+	    if (imgURL != null) {
+	        return new ImageIcon(imgURL);
+	    } else {
+	        System.err.println("Couldn't find file: " + path);
+	        return null;
+	    }
+	}
+	
+	// Criação do frame da GUI (gerado a partir do WindowBuilder)
 	public MainAppFrame() {
 		setResizable(false);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -707,146 +856,12 @@ public class MainAppFrame extends JFrame implements KeyListener{
 		getContentPane().addKeyListener(this);
 	}
 	
-	public static Item getShipByID(int shipid) {
-		for (Item i : Engine.presentItems) {
-			if (i.id == shipid) {
-				return i;
-			}
-		}
-		return null;
-	}
-	
-	// Thread que verifica se a nave pertencida morreu
-	public static void isItDeadYet() {
-		Thread t = new Thread(new Runnable() {
-            public void run() { 
-            	
-            	while (true) {
-            		System.out.print("");
-            		if (Engine.lastcolision != null) {
-            			if (Engine.lastcolision.id == myshipID) {
-            				break;
-            			}
-            		}
-            	}
-            	Engine.deadShip(getShipByID(myshipID));
-            	// TODO: Enviar mensagem para todos os outros players
-            	
-            	mp.enviarMensagem("D;");
-            }
-		});
-		t.start();
-	}
-	
+	// Override obrigatório; evento não tratado
 	@Override
-	public void keyPressed(KeyEvent e) {
-		
-		if (!Engine.presentItems.isEmpty()) {
-		
-			short key = Constants.IDLE;
-	        char c = e.getKeyChar();
-	        
-	        switch(c) {
-	        case 'w':	key = Constants.UP;
-	        			break;
-	        case 'a':	key = Constants.LEFT;
-						break;
-	        case 's':	key = Constants.DOWN;
-						break;
-	        case 'd':	key = Constants.RIGHT;
-						break;
-	        case ' ':	key = Constants.SHOOT;
-						break;
-			default:	key = Constants.IDLE;
-						break;
-	        }
-	         
-	        short shipOrientation;
-	    	Item ship = null;
-	    	int[] newpos = {0,0};
-	    	Item fb;
-	    	int shipIndex;
-			synchronized (Engine.mutex_presentItems) {
-				ship = getShipByID(myshipID);
-				shipIndex = Engine.presentItems.indexOf(ship);
-			}
-			if (ship != null) {
-				shipOrientation= ship.orientation;
-				
-				// Se a tecla corresponde à orientação, anda
-				if (key == shipOrientation) {
-				        				
-					switch(key) {
-					case Constants.LEFT:	newpos[0] = ship.position[0];
-								newpos[1] = ship.position[1]-1;
-								break;
-					case Constants.RIGHT:	newpos[0] = ship.position[0];
-								newpos[1] = ship.position[1]+1;
-								break;
-					case Constants.UP:	newpos[0] = ship.position[0]-1;
-								newpos[1] = ship.position[1];
-								break;
-					case Constants.DOWN:	newpos[0] = ship.position[0]+1;
-								newpos[1] = ship.position[1];
-								break;			
-					}
-					
-					// Garante que o ship não saia da tabela
-					newpos[0] = Math.min(Constants.SIZE_V-1, Math.max(0, newpos[0]));
-					newpos[1] = Math.min(Constants.SIZE_H-1, Math.max(0, newpos[1]));
-					
-					Engine.moveShip(ship, newpos, ship.orientation);
-					
-					// Envia mensagem p/ todos avisando que mudou posição
-					mp.enviarMensagem("P;"+newpos[0]+","+newpos[1]+":"+ship.orientation);
-					
-				// Se a tecla for a de atirar, atire (se possível)
-				} else if (key == Constants.SHOOT) {
-					Engine.newFireball(ship);
-					
-					switch(ship.orientation) {
-					case Constants.LEFT:	newpos[0] = ship.position[0];
-								newpos[1] = ship.position[1]-1;
-								break;
-					case Constants.RIGHT:	newpos[0] = ship.position[0];
-								newpos[1] = ship.position[1]+1;
-								break;
-					case Constants.UP:	newpos[0] = ship.position[0]-1;
-								newpos[1] = ship.position[1];
-								break;
-					case Constants.DOWN:	newpos[0] = ship.position[0]+1;
-								newpos[1] = ship.position[1];
-								break;			
-					}
-					// Envia mensagem p/ todos avisando que criou fireball
-					mp.enviarMensagem("F;"+newpos[0]+","+newpos[1]+":"+ship.orientation);
-					
-				// Se for alguma tecla não reconhe
-				} else if (key == Constants.IDLE){
-					// DO NOTHING
-				// Se não, muda a orientação de acordo com a tecla            			
-				} else if ((key >= Constants.LEFT) &&(key <= Constants.DOWN)) {
-					Engine.moveShip(ship, ship.position, key);
-					
-					// Envia mensagem p/ todos avisando que mudou orientação
-					mp.enviarMensagem("P;"+ship.position[0]+","+ship.position[1]+":"+key);
-					
-				} 
-			}
-		}
-			
-	}
+	public void keyReleased(KeyEvent e) {}
 
+	// Override obrigatório; evento não tratado
 	@Override
-	public void keyReleased(KeyEvent e) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void keyTyped(KeyEvent e) {
-		// TODO Auto-generated method stub
-		
-	}
+	public void keyTyped(KeyEvent e) {}
 
 }

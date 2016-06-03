@@ -1,54 +1,65 @@
 // TODO: Verificar as variáveis globais necessárias
 // TODO: Implementar controle de acesso às variáveis (mutex?)
-// TODO: Implementar reconhecimento de teclas
-// TODO: Calcular colisões
 // TODO: Ajustar todas as threads necessárias para o programa
-// TODO: Resolver como funcionará a parte de rede
-// TODO: Implementar GUI decente
-// TODO: Refatorar código para retirar variáveis globais estáticas
-// TODO: Bug conhecido: tentar lancar uma fireball e andar no mesmo sentido ao mesmo tempo
-// TODO: Causa #1 do bug acima: crash quando o player 1 morre
-// TODO: Causa #2 do bug acima: se ele anda e atira, o tiro pega nele próprio
+// TODO: Se usuário anda e atira, o tiro pega nele próprio
 
 import java.util.ArrayList;
+import java.util.Random;
 
-import javax.swing.ImageIcon;
+// Classe responsável pelo funcionamento do jogo, sendo interfaceada tanto pelo usuário (entradas no teclado)
+// quanto pela rede (mensagens recebidas pelos outros jogadores)
 
 public class Engine {
-		
-	public Engine() {
-		Engine.presentItems = new ArrayList<Item>();
-	}
 	
+	// Vetor com os itens presentes no mapa em um dado momento e um mutex para acesso a ele
 	public static ArrayList<Item> presentItems;
 	public static Object mutex_presentItems = new Object();
-	public static Object mutex_tablechanged = new Object();
+	
+	// Flag que indica se houve alteração não resolvida no mapa e mutex para acesso a ela
 	public static boolean tablechanged;
-
+	public static Object mutex_tablechanged = new Object();
+	
+	// Vetor com os IDs utilizados para os itens
+	public static ArrayList<Integer> presentIDs;
+	
+	// Variável contendo a última nave a participar de uma colisão
 	public static Item lastcolision;
 	
-	// Returns an ImageIcon, or null if the path was invalid.
-	public ImageIcon createImageIcon(String path) {
-	    java.net.URL imgURL = getClass().getResource(path);
-	    if (imgURL != null) {
-	        return new ImageIcon(imgURL);
-	    } else {
-	        System.err.println("Couldn't find file: " + path);
-	        return null;
-	    }
+	public static Random rand;
+	
+	// Método de inicialização
+	public static void iniciar() {
+		Engine.presentItems = new ArrayList<Item>();
+		Engine.presentIDs = new ArrayList<Integer>();
+		rand = new Random();
+		moveFireballs();
+		calcColision();
 	}
 	
-	// Função que cria as naves
-	public static void addShip(Item ship) {
+	// Encontra um ID único para um item
+	public static int findUniqueID() {
+		int id = rand.nextInt(1000);
+		while (presentIDs.contains(id)) {
+			id = rand.nextInt(1000);
+		}
+		return id;
+	}
+	
+	// Função que inclui as naves no vetor (parte da interface)
+	public static Item addShip(Item ship) {		
 		synchronized (Engine.mutex_presentItems) {
+			ship.id = findUniqueID();
+			presentIDs.add(ship.id);
 			presentItems.add(ship);
 			synchronized (Engine.mutex_tablechanged) {
 				Engine.tablechanged = true;
 			}
 		}
+		System.out.println("[ENGINE] Nave "+ ship.id +" criada em (" + ship.position[0] + "," + ship.position[1] + "): " + ship.orientation);
+		return ship;
 	}
 	
-	// Função que move as naves
+	// Função que altera a posição de uma nave (parte da interface)
 	public static void moveShip(Item target, int[] newpos, short neworient) {
 		synchronized (Engine.mutex_presentItems) {
 			int targetIndex = Engine.presentItems.indexOf(target);
@@ -59,9 +70,10 @@ public class Engine {
 				Engine.tablechanged = true;
 			}
 		}
+		System.out.println("[ENGINE]  Nave " + target.id + " moveu-se para (" + newpos[0] + "," + newpos[1] + "): " + target.orientation);
 	}
 	
-	// Função que cria as fireballs
+	// Função que cria a fireball de uma nave (parte da interface)
 	public static void newFireball(Item origin) {
 
 		Item fb;
@@ -86,44 +98,47 @@ public class Engine {
 		
 		// Checa se local é válido
 		if ((newpos[0] >= 0) && (newpos[0] < Constants.SIZE_V) && (newpos[1] >= 0) && (newpos[1] < Constants.SIZE_H)) {
+			
 			// Cria fireball
-			// TODO: Integrar parametro Player3
-			fb = new Item(newpos[0], newpos[1], shipOrientation ,Constants.ITEM_FB,0);
+			fb = new Item(newpos[0], newpos[1], shipOrientation ,Constants.ITEM_FB);
 			
 			// Adiciona fireball em presentItems
 			synchronized (Engine.mutex_presentItems) {
-				Engine.presentItems.add(fb);
+				fb.id = findUniqueID();
+				Engine.presentItems.add(fb);	
+				presentIDs.add(fb.id);
 				synchronized (Engine.mutex_tablechanged) {
 					Engine.tablechanged = true;
 				}
 			}
-			System.out.println("Fireball criada.");
+			System.out.println("[ENGINE] Fireball " + fb.id + " criada em (" + newpos[0] + "," + newpos[1] + "): " + shipOrientation);
 		} else {
-			System.out.println("Fireball nao criada.");
+			System.out.println("[ENGINE] Fireball NAO criada em (" + newpos[0] + "," + newpos[1] + "): " + shipOrientation);
 		}
 	}
 	
-	// Função que remove ships do jogo
+	// Função que remove naves do jogo (parte da interface)
 	public static void deadShip(Item shipToRemove) {
 		synchronized (mutex_presentItems) {
 			presentItems.remove(shipToRemove);
+			presentIDs.remove(Integer.valueOf(shipToRemove.id));
 			synchronized (mutex_tablechanged) {
 				tablechanged = true;
 			}
 		}
+		System.out.println("[ENGINE] Nave " + shipToRemove.id + " removida do jogo");
 	}
 	
-	// Thread usada para calcular colisões
-	public void calcColision() {
+	// Thread usada para calcular colisões (usada internamente pela Engine)
+	// Variável global lastcolision contém ultima nave a colidir
+	private static void calcColision() {
 		Thread t = new Thread(new Runnable() {
             public void run() { 
             	Item[][] table;
             	int[] posicao; 
             	Item col1, col2;
             	
-//            	ArrayList<Item> toremove = new ArrayList<Item>();
             	while(!presentItems.isEmpty()) {
-//            		toremove.clear();
             		table = new Item[Constants.SIZE_V][Constants.SIZE_H];
     				synchronized (mutex_presentItems) {
     					for(Item it: presentItems) {
@@ -140,40 +155,33 @@ public class Engine {
     						table[posicao[0]][posicao[1]] = it;
     						
     						if (col1 != null) {
-    							// Duas fireballs colidindo
     							if ((col1.type == Constants.ITEM_SHIP) && (col2.type == Constants.ITEM_FB)) {
-//									toremove.add(col2);
-//									toremove.add(col1);
-									lastcolision = col1;
-//									System.out.println("Colisao 1");
+									if (lastcolision == null) {
+										System.out.println("[ENGINE] Fireball " + col2.id + " colidiu com a Nave " + col1.id);
+									} else if (lastcolision.id != col1.id) {
+										System.out.println("[ENGINE] Fireball " + col2.id + " colidiu com a Nave " + col1.id);
+									}
+    								lastcolision = col1;									
     							} else if ((col1.type == Constants.ITEM_FB) && (col2.type == Constants.ITEM_SHIP)) {
-//    								toremove.add(col1);
-//    								toremove.add(col2);
-    								lastcolision = col2;
-//    								System.out.println("Colisao 2");
+    								if (lastcolision == null) {
+    									System.out.println("[ENGINE] Fireball "+ col1.id + " colidiu com a Nave " + col2.id);
+    								} else if (lastcolision.id != col2.id) {
+    									System.out.println("[ENGINE] Fireball " + col1.id + " colidiu com a Nave " + col2.id);
+									}
+    								lastcolision = col2;    								
     							}
-    						}
-    						
+    							
+    						}    						
     					}
-//    					presentItems.removeAll(toremove);
-//        				if (!toremove.isEmpty()) {
-//        					synchronized (mutex_tablechanged) {
-//            					tablechanged = true;
-//    						}
-//        				}
     				}
             	}
-    			// Verificar colisões
-            	// Subtrair pontos de vida do jogador
-            	// Caso cabivel, remover jogador do tabuleiro
-            	// Remover fireball do tabuleiro
             }
 		});
 		t.start();
 	}
 
 	// Thread usada para mover as fireballs
-	public void moveFireballs() {
+	private static void moveFireballs() {
 		Thread t = new Thread(new Runnable() {           
             public void run() { 
             	int[] posicao, newposicao;
@@ -191,13 +199,13 @@ public class Engine {
         						
         						switch(orientacao) {
         						case Constants.LEFT:	newposicao[1] = posicao[1] - 1;
-        									break;
+        												break;
         						case Constants.RIGHT:	newposicao[1] = posicao[1] + 1;
-        									break;
+        												break;
         						case Constants.UP:	newposicao[0] = posicao[0] - 1;
-        									break;
+        												break;
         						case Constants.DOWN:	newposicao[0] = posicao[0] + 1;
-        									break;
+        												break;
         						}
         						
         						// Fireball atingiu o fim do tabuleiro

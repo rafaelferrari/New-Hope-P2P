@@ -4,16 +4,6 @@ import java.util.ArrayList;
 import java.util.Random;
 public class Multiplayer {
 	
-	// Nesta classe, as conexões são apenas de recepção de dados.
-	// O envio de dados ocorre depois que são reconhecidos os comandos do teclado.
-	// TODO: Definir classe que envia os dados
-	
-	// http://gamedevelopment.tutsplus.com/tutorials/building-a-peer-to-peer-multiplayer-networked-game--gamedev-10074
-	// https://docs.oracle.com/javase/tutorial/networking/datagrams/clientServer.html
-	// https://systembash.com/a-simple-java-udp-server-and-udp-client/
-	// https://docs.oracle.com/javase/8/docs/api/java/net/DatagramSocket.html
-	// https://docs.oracle.com/javase/tutorial/networking/sockets/readingWriting.html
-	
 	//  TODO: Aumentar quantidade de rivais simultâneos
 	public InetAddress rival,gameserverIP;
 	public int gameserverUDP;
@@ -149,7 +139,7 @@ public class Multiplayer {
 				Engine.moveShip(rivalShip, newpos, or);
 			} else {
 				rival = pacote.getAddress();
-				rivalShip = new Item(newpos[0],newpos[1],or,Constants.ITEM_SHIP,4444);
+				rivalShip = new Item(newpos[0],newpos[1],or,Constants.ITEM_SHIP);
 				Engine.addShip(rivalShip);
 			}
 			
@@ -167,7 +157,7 @@ public class Multiplayer {
 			if(rivalShip != null) {				
 				Engine.moveShip(rivalShip, newpos, or);
 			} else {
-				rivalShip = new Item(newpos[0],newpos[1],or,Constants.ITEM_SHIP,4444);
+				rivalShip = new Item(newpos[0],newpos[1],or,Constants.ITEM_SHIP);
 				Engine.addShip(rivalShip);
 			}
 			
@@ -179,7 +169,7 @@ public class Multiplayer {
 			newpos[1] = Integer.parseInt(msg.substring(msg.indexOf(',')+1, msg.indexOf(':')));
 			or = Short.parseShort(msg.substring(msg.indexOf(':')+1, msg.indexOf(':')+2));
 			System.out.println("Parsing (" + newpos[0] + "," + newpos[1] + ") orient " + or + "\n");
-			fb = new Item(newpos[0],newpos[1],or,Constants.ITEM_FB,rand.nextInt(300)+1);
+			fb = new Item(newpos[0],newpos[1],or,Constants.ITEM_FB);
 			Engine.newFireball(fb);
 						
 			break;
