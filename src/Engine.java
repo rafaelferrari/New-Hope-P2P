@@ -125,7 +125,7 @@ public class Engine {
 	public static void deadShip(Item shipToRemove) {
 		synchronized (mutex_presentItems) {
 			presentItems.remove(shipToRemove);
-			presentIDs.remove(Integer.valueOf(shipToRemove.id));
+			presentIDs.remove(new Integer(shipToRemove.id));
 			synchronized (mutex_tablechanged) {
 				tablechanged = true;
 			}

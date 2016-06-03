@@ -4,16 +4,17 @@ import javax.swing.JFrame;
 import java.awt.GridLayout;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.net.DatagramPacket;
 
 import javax.swing.ImageIcon;
 
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+
 import java.awt.Font;
 
 // Classe responsável por manter a GUI ativa e gerenciar as entradas do usuário local
 
-public class MainAppFrame extends JFrame implements KeyListener{
+public class GUI extends JFrame implements KeyListener{
 
 	// Variável gerada automaticamente pelo WindowBuilder
 	private static final long serialVersionUID = 5677102364360107436L;
@@ -36,19 +37,46 @@ public class MainAppFrame extends JFrame implements KeyListener{
 	public static final int iniY = 2;
 	public static final short iniOR = Constants.UP;
 	
+	public static GUI frame;
+	
 	// Execução principal sequencial do jogo
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				
 				// Abertura da GUI 
-				MainAppFrame frame = null;
 				try {
-					frame = new MainAppFrame();
+					frame = new GUI();
 					frame.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
+				
+				frame.addWindowListener(new java.awt.event.WindowAdapter() {
+				    @Override
+				    public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+				        if (JOptionPane.showConfirmDialog(frame, 
+				            "Tem certeza que deseja sair?", "Sair do Jogo?", 
+				            JOptionPane.YES_NO_OPTION,
+				            JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION){
+				        	
+				        	if (myshipID != -1) {
+				        		System.out.println("[USER] Solicitada remocao da Nave " + myshipID + " do jogo");
+
+				            	// Envia a mensagem de DEAD para os demais players, confirmando sua remoção do jogo
+				            	Multiplayer.enviarMensagem("D;");
+				            	
+				            	// Solicita à Engine a remoção da nave do usuário do mapa
+				            	Engine.deadShip(getShipByID(myshipID));
+				            				            
+				            	// Encerra threads e fecha sockets
+				            	Multiplayer.sair();
+				        	}
+				        	
+				        	System.exit(0);
+				        }
+				    }
+				});
 				
 				// Criação da nave do usuário
 				Item aShip = new Item(iniX,iniY,iniOR,Constants.ITEM_SHIP);
@@ -82,9 +110,7 @@ public class MainAppFrame extends JFrame implements KeyListener{
 				
 				// Inicialização das funcionalidades online
 				try {
-					Multiplayer.inicio(gameServer, gameServerUDP);
-					Multiplayer.connect2GameServer(iniX, iniY, iniOR);
-					Multiplayer.receberMensagens();
+					Multiplayer.inicio(gameServer, gameServerUDP,iniX, iniY, iniOR);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -203,6 +229,9 @@ public class MainAppFrame extends JFrame implements KeyListener{
             	
             	// Envia a mensagem de DEAD para os demais players, confirmando sua remoção do jogo
             	Multiplayer.enviarMensagem("D;");
+            	
+            	// Torna myshipID nulo
+            	myshipID = -1;
             	
             }
 		});
@@ -332,7 +361,7 @@ public class MainAppFrame extends JFrame implements KeyListener{
 	}
 	
 	// Criação do frame da GUI (gerado a partir do WindowBuilder)
-	public MainAppFrame() {
+	public GUI() {
 		setResizable(false);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 640, 640);

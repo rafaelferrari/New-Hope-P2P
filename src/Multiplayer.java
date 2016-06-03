@@ -21,9 +21,12 @@ public class Multiplayer {
 	// Sockets utilizados para transmissão de pacotes UDP
 	// clientsock é o socket da porta que será monitorada para recepção de mensagens (port)
 	// serversock é o socket utilizado para envio de dados (e recepção, no caso do servidor)
-	public static DatagramSocket clientsock, serversock;
-	public static final int port = 9876;
+	public static DatagramSocket listensock, serversock;
+	public static final int portPeers = 9876;
 	public static final int sizepkg = 16;
+	
+	// Variável de controle para as threads
+	public static boolean running = true; 
 	
 	public static String mensagemRecebida;
 	
@@ -34,15 +37,37 @@ public class Multiplayer {
 	public static HashMap<InetAddress,Item> onlineShips;
 	
 	// Inicialização das variáveis do sistema
-	public static void inicio(String servername, int serverport) throws UnknownHostException, SocketException {
+	public static void inicio(String servername, int serverport, int iniX, int iniY, short iniOR) throws IOException {
 
 		// Inicialização de IP/UDP do serrvidor de consulta
 		gameserverIP = InetAddress.getByName(servername);
 		gameserverUDP = serverport;
 
-		// Inicialização dos sockets
-		clientsock = new DatagramSocket(port);
+		// Inicialização do socket para comunicação entre pares
+		listensock = new DatagramSocket(portPeers);
+		
+		// Inicialização do socket para comunicação com o servidor de consulta
 		serversock = new DatagramSocket();
+		
+		// Conexão com o servidor de consulta fixo
+		connect2GameServer(iniX, iniY, iniOR);
+		
+		// Inicia thread para receber mensagens
+		receberMensagens();
+	}
+	
+	// Método para desconectar-se e fechar sockets
+	public static void sair() {
+		running = false;
+		
+		try {
+			Thread.sleep(50);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		listensock.close();
+		serversock.close();
 	}
 	
 	// Método para conexão com o Servidor fixo, onde é solicitada a lista de endereços online
@@ -54,19 +79,25 @@ public class Multiplayer {
 		// Enviada uma mensagem WHO, que solicita ao servidor que envie os dados de sua tabela de endereços
 		String cmd = "W";
 		sendData = cmd.getBytes();
+		
+		// Pacote é endereçado ao servidor de consulta na porta padrão que ele estará recebendo, ambos pré-definidos
 		DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, gameserverIP, gameserverUDP);
 		System.out.println("[MULTIPLAYER] Enviada mensagem WHO ao servidor " + gameserverIP.toString() + "/" + gameserverUDP);
+		// Pacote  é enviado através de um socket definido pelo SO
 		serversock.send(sendPacket);
 		
 		// Aguarda a recepção de uma mensagem contendo os endereços IP de peers online
 		DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+		// Pacote é recebido através do mesmo socket que usou para enviar a requisiçao
 		serversock.receive(receivePacket);
+		
 		String enderecos = new String(receivePacket.getData()), atual;
 		System.out.println("[MULTIPLAYER] Recebido do servidor: " + enderecos);
 		
 		onlinePlayers = new ArrayList<InetAddress>();
 		onlineShips = new HashMap<InetAddress,Item>();
 		
+		// Obtém os vários endereços possíveis na mensagem do servidor
 		while (enderecos.contains(";")) {
 			atual = enderecos.substring(0,enderecos.indexOf(';'));
 			onlinePlayers.add(InetAddress.getByName(atual));
@@ -75,7 +106,8 @@ public class Multiplayer {
 			cmd = "A;"+iniX+","+iniY+":"+iniOR;
 			sendData = cmd.getBytes();
 			toSend = InetAddress.getByName(atual);
-			sendPacket = new DatagramPacket(sendData, sendData.length, toSend, port);
+			sendPacket = new DatagramPacket(sendData, sendData.length, toSend, portPeers);
+			// Mensagem é enviada através do socket definido pelo SO para a porta UDP de comunicação entre peers
 			serversock.send(sendPacket);
 			
 			if (enderecos.indexOf(';')+1 >= enderecos.length()) {
@@ -93,14 +125,30 @@ public class Multiplayer {
 
 	// Método envia mensagem para todos os peers online
 	public static void enviarMensagem(String msg) {
+		DatagramPacket sendPacket;
+
+		byte[] sendData = new byte[sizepkg];
+		sendData = msg.getBytes();
+		
+		// Caso a mensagem seja DEADSHIP, enviar cópia para o servidor de consulta, para atualização
+		if (msg.startsWith("D")) {				
+			// Envia uma mensagem D, que solicita ao servidor que envie os dados de sua tabela de endereços
+			sendPacket = new DatagramPacket(sendData, sendData.length, gameserverIP, gameserverUDP);
+			System.out.println("[MULTIPLAYER] Enviada mensagem DEAD ao servidor " + gameserverIP.toString() + "/" + gameserverUDP);
+			try {
+				// Pacote enviado através do socket criado pelo SO para a porta UDP de comunicação do servidor
+				serversock.send(sendPacket);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		// Envia uma cópia da mensagem para cada peer conectado
 		if (!onlinePlayers.isEmpty()) {
-			byte[] sendData = new byte[sizepkg];
-			sendData = msg.getBytes();
-			DatagramPacket sendPacket;
-			
 			for (InetAddress i : onlinePlayers) {
-				sendPacket = new DatagramPacket(sendData, sendData.length,i, port);
+				sendPacket = new DatagramPacket(sendData, sendData.length,i, portPeers);
 				try {
+					// Mensagens enviadas através do socket criado pelo SO para a porta UDP de comunicação entre peers
 					serversock.send(sendPacket);
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -141,7 +189,7 @@ public class Multiplayer {
 						Engine.addShip(newitem);				
 					}
 					
-					enviarMensagem("P;"+MainAppFrame.getShipByID(MainAppFrame.myshipID).position[0]+","+MainAppFrame.getShipByID(MainAppFrame.myshipID).position[1]+":"+MainAppFrame.getShipByID(MainAppFrame.myshipID).orientation);
+					enviarMensagem("P;"+GUI.getShipByID(GUI.myshipID).position[0]+","+GUI.getShipByID(GUI.myshipID).position[1]+":"+GUI.getShipByID(GUI.myshipID).orientation);
 					
 					break;
 					
@@ -194,24 +242,33 @@ public class Multiplayer {
         t.start();
 	}
 	
-	// Thread responsável por escutar, aguardando o recebimento de novas mensagens dos peers	
+	// Thread responsável por escutar na porta UDP padrão entre peers, aguardando o recebimento de novas mensagens	
 	public static void receberMensagens() {
 		Thread t = new Thread(new Runnable() {           
             public void run() {
             	DatagramPacket pacote;
             	byte[] rcvData;
             	
-            	while (true) {
+            	// Checa a cada 25ms se a thread ainda deve rodar
+            	try {
+					listensock.setSoTimeout(25);
+				} catch (SocketException e1) {
+					e1.printStackTrace();
+				}
+            	
+            	while (running) {
             		rcvData = new byte[sizepkg];
             		pacote = new DatagramPacket(rcvData, rcvData.length);
-            		try {
-						clientsock.receive(pacote);
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
             		
-            		reconhecerMensagens(pacote);            		
+            		// Escuta o socket padrão para mensagens enviadas pelos peers, e delega o recnhecimento das mensagens p/ outra thread
+            		try {
+						listensock.receive(pacote);
+						reconhecerMensagens(pacote);
+					} catch (IOException e) {
+						if (!(e instanceof SocketTimeoutException)) {
+							e.printStackTrace();
+						}
+					}            		
             	}
             } 
         });
