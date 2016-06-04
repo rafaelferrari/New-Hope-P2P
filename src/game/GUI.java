@@ -7,6 +7,8 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.File;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
 
 import javax.swing.ImageIcon;
 
@@ -44,7 +46,7 @@ public class GUI extends JFrame implements KeyListener{
 	public static GUI frame;
 	
 	// Som de GAME OVER
-	public static Sound soundGAMEOVER = new Sound("sounds/youlost.wav");
+	public static Sound soundGAMEOVER = new Sound("/resources/sounds/youlost.wav");
 	
 	// Execução principal sequencial do jogo
 	public static void main(String[] args) {
@@ -98,17 +100,17 @@ public class GUI extends JFrame implements KeyListener{
 				
 				// Inicialização das imagens 
 				try {
-					bg_icon = frame.createImageIcon("icons/bg.png");
-					fb_icon = frame.createImageIcon("icons/fb2.png");
-					ss_iconl = frame.createImageIcon("icons/ss3_l.png");
-					ss_iconr = frame.createImageIcon("icons/ss3_r.png");
-					ss_iconu = frame.createImageIcon("icons/ss3_u.png");
-					ss_icond = frame.createImageIcon("icons/ss3_d.png");
+					bg_icon = frame.createImageIcon("/resources/icons/bg.png");
+					fb_icon = frame.createImageIcon("/resources/icons/fb2.png");
+					ss_iconl = frame.createImageIcon("/resources/icons/ss3_l.png");
+					ss_iconr = frame.createImageIcon("/resources/icons/ss3_r.png");
+					ss_iconu = frame.createImageIcon("/resources/icons/ss3_u.png");
+					ss_icond = frame.createImageIcon("/resources/icons/ss3_d.png");
 					
-					ss_icon2l = frame.createImageIcon("icons/ss1_l.png");
-					ss_icon2r = frame.createImageIcon("icons/ss1_r.png");
-					ss_icon2u = frame.createImageIcon("icons/ss1_u.png");
-					ss_icon2d = frame.createImageIcon("icons/ss1_d.png");
+					ss_icon2l = frame.createImageIcon("/resources/icons/ss1_l.png");
+					ss_icon2r = frame.createImageIcon("/resources/icons/ss1_r.png");
+					ss_icon2u = frame.createImageIcon("/resources/icons/ss1_u.png");
+					ss_icon2d = frame.createImageIcon("/resources/icons/ss1_d.png");
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -364,7 +366,8 @@ public class GUI extends JFrame implements KeyListener{
 	
 	// Retorna um ImageIcon ou nulo, caso o caminho seja inválido
 	public ImageIcon createImageIcon(String path) throws MalformedURLException {
-	    java.net.URL imgURL = new File(path).toURI().toURL();
+		URL imgURL = Sound.class.getResource(path);
+		
 	    if (imgURL != null) {
 	        return new ImageIcon(imgURL);
 	    } else {

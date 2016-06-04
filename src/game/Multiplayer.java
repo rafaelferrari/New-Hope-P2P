@@ -37,6 +37,8 @@ public class Multiplayer {
 	// Estrutura que mapeia cada endereço IP em uma Nave correspondente
 	public static HashMap<InetAddress,Item> onlineShips;
 	
+	public static DatagramPacket pacote;
+	
 	// Inicialização das variáveis do sistema
 	public static void inicio(String servername, int serverport, int iniX, int iniY, short iniOR) throws IOException {
 
@@ -159,7 +161,8 @@ public class Multiplayer {
 	}
 	
 	// Reconhecimento das mensagens do protocolo definido recebidas pelo programa
-	public static void reconhecerMensagens(DatagramPacket pacote) {		
+	public static void reconhecerMensagens(DatagramPacket packet) {	
+		pacote = packet;
 		Thread t = new Thread(new Runnable() {           
             public void run() {
 				String msg = new String(pacote.getData());

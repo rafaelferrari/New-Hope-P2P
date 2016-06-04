@@ -30,10 +30,10 @@ public class Engine {
 	public static Item lastcolision;
 	
 	// Efeitos sonoros
-	public static Sound soundBG = new Sound("sounds/background.wav");
-	public static Sound soundSHOOT = new Sound("sounds/shoot.wav");
-	public static Sound soundEXPLODE = new Sound("sounds/explosion.wav");
-	public static Sound soundNEWSHIP = new Sound("sounds/newship.wav");
+	public static Sound soundBG = new Sound("/resources/sounds/background.wav");
+	public static Sound soundSHOOT = new Sound("/resources/sounds/shoot.wav");
+	public static Sound soundEXPLODE = new Sound("/resources/sounds/explosion.wav");
+	public static Sound soundNEWSHIP = new Sound("/resources/sounds/newship.wav");
 	
 	// Variável geradora de números aleatórios
 	public static Random rand;

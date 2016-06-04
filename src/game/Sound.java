@@ -1,7 +1,12 @@
 package game;
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
+
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
@@ -25,9 +30,12 @@ public class Sound {
 	 */
 	public Sound(String fileName) {
 		try {
-			File file = new File(fileName);
-			if (file.exists()) {
-				AudioInputStream sound = AudioSystem.getAudioInputStream(file);
+//			URL url = Sound.class.getResource(fileName);
+//			File file = new File(url.toURI());
+			InputStream str = Sound.class.getResourceAsStream(fileName);
+			InputStream bufferedIn = new BufferedInputStream(str);
+			if (str != null) {
+				AudioInputStream sound = AudioSystem.getAudioInputStream(bufferedIn);
 				// load the sound into memory (a Clip)
 				clip = AudioSystem.getClip();
 				clip.open(sound);
@@ -47,7 +55,7 @@ public class Sound {
 			e.printStackTrace();
 			throw new RuntimeException(
 					"Sound: Line Unavailable Exception Error: " + e);
-		}
+		} 
 	}
 
 	public void play() {
