@@ -4,6 +4,8 @@ import javax.swing.JFrame;
 import java.awt.GridLayout;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.File;
+import java.net.MalformedURLException;
 
 import javax.swing.ImageIcon;
 
@@ -94,17 +96,21 @@ public class GUI extends JFrame implements KeyListener{
 				myshipID = Engine.presentItems.get(0).id;
 				
 				// Inicialização das imagens 
-				bg_icon = frame.createImageIcon("icons/bg.png");
-				fb_icon = frame.createImageIcon("icons/fb2.png");
-				ss_iconl = frame.createImageIcon("icons/ss3_l.png");
-				ss_iconr = frame.createImageIcon("icons/ss3_r.png");
-				ss_iconu = frame.createImageIcon("icons/ss3_u.png");
-				ss_icond = frame.createImageIcon("icons/ss3_d.png");
-				
-				ss_icon2l = frame.createImageIcon("icons/ss1_l.png");
-				ss_icon2r = frame.createImageIcon("icons/ss1_r.png");
-				ss_icon2u = frame.createImageIcon("icons/ss1_u.png");
-				ss_icon2d = frame.createImageIcon("icons/ss1_d.png");
+				try {
+					bg_icon = frame.createImageIcon("icons/bg.png");
+					fb_icon = frame.createImageIcon("icons/fb2.png");
+					ss_iconl = frame.createImageIcon("icons/ss3_l.png");
+					ss_iconr = frame.createImageIcon("icons/ss3_r.png");
+					ss_iconu = frame.createImageIcon("icons/ss3_u.png");
+					ss_icond = frame.createImageIcon("icons/ss3_d.png");
+					
+					ss_icon2l = frame.createImageIcon("icons/ss1_l.png");
+					ss_icon2r = frame.createImageIcon("icons/ss1_r.png");
+					ss_icon2u = frame.createImageIcon("icons/ss1_u.png");
+					ss_icon2d = frame.createImageIcon("icons/ss1_d.png");
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 				
 				// Inicialização de thread que checa se a nave do usuário está viva
 				isItDeadYet();
@@ -356,8 +362,8 @@ public class GUI extends JFrame implements KeyListener{
 	}
 	
 	// Retorna um ImageIcon ou nulo, caso o caminho seja inválido
-	public ImageIcon createImageIcon(String path) {
-	    java.net.URL imgURL = getClass().getResource(path);
+	public ImageIcon createImageIcon(String path) throws MalformedURLException {
+	    java.net.URL imgURL = new File(path).toURI().toURL();
 	    if (imgURL != null) {
 	        return new ImageIcon(imgURL);
 	    } else {
