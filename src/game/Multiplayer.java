@@ -1,3 +1,4 @@
+package game;
 // TODO: Explicar melhor parte de redes desta classe
 
 import java.io.IOException;

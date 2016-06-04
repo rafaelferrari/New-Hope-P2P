@@ -1,3 +1,4 @@
+package game;
 // Classe para encapsular as constantes utilizadas no projeto
 
 public final class Constants {

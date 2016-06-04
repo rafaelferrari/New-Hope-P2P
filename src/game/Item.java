@@ -1,3 +1,4 @@
+package game;
 // Classe responsável por encapsular as informações sobre os itens no campo
 // No momento,itens podem ser SHIP ou FIREBALL
 

@@ -1,3 +1,4 @@
+package game;
 // TODO: Verificar as variáveis globais necessárias
 // TODO: Implementar controle de acesso às variáveis (mutex?)
 // TODO: Ajustar todas as threads necessárias para o programa
