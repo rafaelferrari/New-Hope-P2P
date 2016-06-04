@@ -1,5 +1,4 @@
 package game;
-// TODO: Explicar melhor parte de redes desta classe
 
 import java.io.IOException;
 import java.net.*;
@@ -18,7 +17,6 @@ public class Multiplayer {
 	public static InetAddress gameserverIP;
 	public static int gameserverUDP;
 	
-	// TODO: Analisar se estes sockets estão sendo bem utilizados - será que dá pra usar um só?
 	// Sockets utilizados para transmissão de pacotes UDP
 	// clientsock é o socket da porta que será monitorada para recepção de mensagens (port)
 	// serversock é o socket utilizado para envio de dados (e recepção, no caso do servidor)

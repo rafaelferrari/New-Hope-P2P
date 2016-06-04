@@ -1,8 +1,4 @@
 package game;
-// TODO: Verificar as variáveis globais necessárias
-// TODO: Implementar controle de acesso às variáveis (mutex?)
-// TODO: Ajustar todas as threads necessárias para o programa
-// TODO: Se usuário anda e atira, o tiro pega nele próprio
 
 import java.util.ArrayList;
 import java.util.Random;

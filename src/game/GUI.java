@@ -32,7 +32,7 @@ public class GUI extends JFrame implements KeyListener{
 	public static int myshipID;
 		
 	// Servidor e porta padrões para solicitar os IPs dos peers
-	public static final String gameServer = "192.168.25.64";
+	public static String gameServer = "192.168.25.64";
 	public static final int gameServerUDP = 6666;
 	
 	// Posição e orientação iniciais da nave do usuário
@@ -48,6 +48,15 @@ public class GUI extends JFrame implements KeyListener{
 	
 	// Execução principal sequencial do jogo
 	public static void main(String[] args) {
+		
+		if (args.length > 0) {
+			gameServer = args[0];
+		} else {
+			System.out.println("[ERRO] Favor informar o IP do servidor de consulta");
+			System.out.println("       Usage: java -jar game.jar <IP>");
+			System.exit(0);
+		}
+		
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				
