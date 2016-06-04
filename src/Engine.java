@@ -11,6 +11,9 @@ import java.util.Random;
 
 public class Engine {
 	
+	// Varíavel indicando se efeitos sonoros estão habilitados
+	public static final boolean soundeffects = true;
+	
 	// Vetor com os itens presentes no mapa em um dado momento e um mutex para acesso a ele
 	public static ArrayList<Item> presentItems;
 	public static Object mutex_presentItems = new Object();
@@ -25,6 +28,13 @@ public class Engine {
 	// Variável contendo a última nave a participar de uma colisão
 	public static Item lastcolision;
 	
+	// Efeitos sonoros
+	public static Sound soundBG = new Sound("sounds/background.wav");
+	public static Sound soundSHOOT = new Sound("sounds/shoot.wav");
+	public static Sound soundEXPLODE = new Sound("sounds/explosion.wav");
+	public static Sound soundNEWSHIP = new Sound("sounds/newship.wav");
+	
+	// Variável geradora de números aleatórios
 	public static Random rand;
 	
 	// Método de inicialização
@@ -32,6 +42,7 @@ public class Engine {
 		Engine.presentItems = new ArrayList<Item>();
 		Engine.presentIDs = new ArrayList<Integer>();
 		rand = new Random();		
+		if (soundeffects) soundBG.loop();
 	}
 	
 	// Método de execução da Engine
@@ -59,6 +70,7 @@ public class Engine {
 				Engine.tablechanged = true;
 			}
 		}
+		soundNEWSHIP.play();
 		System.out.println("[ENGINE] Nave "+ ship.id +" criada em (" + ship.position[0] + "," + ship.position[1] + "): " + ship.orientation);
 		return ship;
 	}
@@ -105,6 +117,7 @@ public class Engine {
 			
 			// Cria fireball
 			fb = new Item(newpos[0], newpos[1], shipOrientation ,Constants.ITEM_FB);
+			if (soundeffects) soundSHOOT.play();
 			
 			// Adiciona fireball em presentItems
 			synchronized (Engine.mutex_presentItems) {
@@ -130,6 +143,7 @@ public class Engine {
 				tablechanged = true;
 			}
 		}
+		if (soundeffects) soundEXPLODE.play();
 		System.out.println("[ENGINE] Nave " + shipToRemove.id + " removida do jogo");
 	}
 	

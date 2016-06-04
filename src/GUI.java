@@ -37,7 +37,11 @@ public class GUI extends JFrame implements KeyListener{
 	public static final int iniY = 2;
 	public static final short iniOR = Constants.UP;
 	
+	// Frame principal
 	public static GUI frame;
+	
+	// Som de GAME OVER
+	public static Sound soundGAMEOVER = new Sound("sounds/youlost.wav");
 	
 	// Execução principal sequencial do jogo
 	public static void main(String[] args) {
@@ -222,6 +226,8 @@ public class GUI extends JFrame implements KeyListener{
             			}
             		}
             	}
+            	
+            	soundGAMEOVER.play();
             	
             	System.out.println("[USER] Solicitada remocao da Nave " + myshipID + " do jogo");
             	// Solicita à Engine a remoção da nave do usuário do mapa
