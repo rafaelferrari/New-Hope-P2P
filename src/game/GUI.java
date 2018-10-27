@@ -29,22 +29,22 @@ public class GUI extends JFrame implements KeyListener{
 	private static ImageIcon bg_icon, fb_icon, ss_iconl, ss_iconr, ss_iconu, ss_icond, ss_icon2l, ss_icon2r, ss_icon2u, ss_icon2d;
 	
 	// ID única do usuário local
-	public static int myshipID;
+	static int myshipID;
 		
 	// Servidor e porta padrões para solicitar os IPs dos peers
-	public static String gameServer = "192.168.25.64";
-	public static final int gameServerUDP = 6666;
+	private static String gameServer = "192.168.25.64";
+	private static final int gameServerUDP = 6666;
 	
 	// Posição e orientação iniciais da nave do usuário
-	public static final int iniX = 2;
-	public static final int iniY = 2;
-	public static final short iniOR = Constants.UP;
+	private static final int iniX = 2;
+	private static final int iniY = 2;
+	private static final short iniOR = Constants.UP;
 	
 	// Frame principal
-	public static GUI frame;
+	private static GUI frame;
 	
 	// Som de GAME OVER
-	public static Sound soundGAMEOVER = new Sound("/resources/sounds/youlost.wav");
+	private static Sound soundGAMEOVER = new Sound("/resources/sounds/youlost.wav");
 	
 	// Execução principal sequencial do jogo
 	public static void main(String[] args) {
@@ -57,206 +57,200 @@ public class GUI extends JFrame implements KeyListener{
 			System.exit(0);
 		}
 		
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				
-				// Abertura da GUI 
-				try {
-					frame = new GUI();
-					frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-				
-				frame.addWindowListener(new java.awt.event.WindowAdapter() {
-				    @Override
-				    public void windowClosing(java.awt.event.WindowEvent windowEvent) {
-				        if (JOptionPane.showConfirmDialog(frame, 
-				            "Tem certeza que deseja sair?", "Sair do Jogo?", 
-				            JOptionPane.YES_NO_OPTION,
-				            JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION){
-				        	
-				        	if (myshipID != -1) {
-				        		System.out.println("[USER] Solicitada remocao da Nave " + myshipID + " do jogo");
+		EventQueue.invokeLater(() -> {
 
-				            	// Envia a mensagem de DEAD para os demais players, confirmando sua remoção do jogo
-				            	Multiplayer.enviarMensagem("D;");
-				            	
-				            	// Solicita à Engine a remoção da nave do usuário do mapa
-				            	Engine.deadShip(getShipByID(myshipID));
-				            				            
-				            	// Encerra threads e fecha sockets
-				            	Multiplayer.sair();
-				        	}
-				        	
-				        	System.exit(0);
-				        }
-				    }
-				});
-				
-				// Criação da nave do usuário
-				Item aShip = new Item(iniX,iniY,iniOR,Constants.ITEM_SHIP);
-				
-				// Inicialização da Engine
-				Engine.iniciar();
-				Engine.addShip(aShip);
-				Engine.executar();
-				
-				// Como a nave foi a primeira a ser instanciada, recupera o valor de ID fornecido a ela
-				myshipID = Engine.presentItems.get(0).id;
-				
-				// Inicialização das imagens 
-				try {
-					bg_icon = frame.createImageIcon("/resources/icons/bg.png");
-					fb_icon = frame.createImageIcon("/resources/icons/fb2.png");
-					ss_iconl = frame.createImageIcon("/resources/icons/ss3_l.png");
-					ss_iconr = frame.createImageIcon("/resources/icons/ss3_r.png");
-					ss_iconu = frame.createImageIcon("/resources/icons/ss3_u.png");
-					ss_icond = frame.createImageIcon("/resources/icons/ss3_d.png");
-					
-					ss_icon2l = frame.createImageIcon("/resources/icons/ss1_l.png");
-					ss_icon2r = frame.createImageIcon("/resources/icons/ss1_r.png");
-					ss_icon2u = frame.createImageIcon("/resources/icons/ss1_u.png");
-					ss_icon2d = frame.createImageIcon("/resources/icons/ss1_d.png");
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-				
-				// Inicialização de thread que checa se a nave do usuário está viva
-				isItDeadYet();
-				
-				// Inicialização de thread responsável pelo desenho e atualização do mapa
-				printTable();
-				
-				// Inicialização das funcionalidades online
-				try {
-					Multiplayer.inicio(gameServer, gameServerUDP,iniX, iniY, iniOR);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		});
-	}
-	
-	// Thread responsável pelo desenho e atualização do mapa
-	public static void printTable() {
-		Thread t = new Thread(new Runnable() {           
-	        public void run() { 
-	        	// Variável da matriz correspondente ao mapa
-	        	Item[][] table = new Item[Constants.SIZE_V][Constants.SIZE_H];
-	        	
-				int[] posicao = {0, 0};
-				boolean tbchange;
-				
-				while(true) {
-					tbchange = false;
-					while(!tbchange) {
-						// Checa alterações a cada 50ms (20 FPS)
-                		try {
-    						Thread.sleep(50);
-    					} catch (InterruptedException e) {
-    						e.printStackTrace();
-    					}
-                		synchronized (Engine.mutex_tablechanged) {
-                			tbchange = Engine.tablechanged;
-    					}
-                	}
-					synchronized (Engine.mutex_tablechanged) {
-            			Engine.tablechanged = false;
-					}
-					
-					table = new Item[Constants.SIZE_V][Constants.SIZE_H];
-					synchronized (Engine.mutex_presentItems) {
-						for(Item it: Engine.presentItems) {
-							posicao = it.position;
-							table[posicao[0]][posicao[1]] = it;
-						}
-					}
-									
-					Item it;
-					for(int i = 0; i < Constants.SIZE_V; i++) {
-						for(int j = 0; j < Constants.SIZE_H; j++) {
-							it = table[i][j];
-							if (it == null) {
-								label[xy2label(i, j)].setIcon(bg_icon);
-							} else if (it.type == Constants.ITEM_FB) {
-								label[xy2label(i, j)].setIcon(fb_icon);
-							} else if (it.type == Constants.ITEM_SHIP){
-								if (it.orientation == Constants.LEFT)
-									if (it.id == myshipID) {
-										label[xy2label(i, j)].setIcon(ss_iconl);
-									} else {
-										label[xy2label(i, j)].setIcon(ss_icon2l);
-									}
-								else if (it.orientation == Constants.RIGHT)
-									if (it.id == myshipID) {
-										label[xy2label(i, j)].setIcon(ss_iconr);
-									} else {
-										label[xy2label(i, j)].setIcon(ss_icon2r);
-									}
-								else if (it.orientation == Constants.UP)
-									if (it.id == myshipID) {
-										label[xy2label(i, j)].setIcon(ss_iconu);
-									} else {
-										label[xy2label(i, j)].setIcon(ss_icon2u);
-									}
-								else if (it.orientation == Constants.DOWN)
-									if (it.id == myshipID) {
-										label[xy2label(i, j)].setIcon(ss_icond);
-									} else {
-										label[xy2label(i, j)].setIcon(ss_icon2d);
-									}
-								else {
-									System.out.println("/nErro fatal de orientacao. " + it.orientation);
-									System.exit(0);
-								}
-							} else {
-								System.out.println("/nErro fatal de tipo de celula.");
-								System.exit(0);
-							}
-						}
-					}
-										
-				}
-				
-				
-	        }				
-	    });
-		t.start();				
-	}
-	
-	// Thread que verifica se a nave do usuário local morreu
-	public static void isItDeadYet() {
-		Thread t = new Thread(new Runnable() {
-            public void run() {             	
-            	while (true) {
-            		// A cada 50ms checa se houve colisão com nave de usuário local
-            		try {
-            			Thread.sleep(50);
-            		} catch (Exception e) {
-            			e.printStackTrace();
-            		}
-            		if (Engine.lastcolision != null) {
-            			if (Engine.lastcolision.id == myshipID) {
-            				break;
-            			}
-            		}
-            	}
-            	
-            	soundGAMEOVER.play();
-            	
-            	System.out.println("[USER] Solicitada remocao da Nave " + myshipID + " do jogo");
-            	// Solicita à Engine a remoção da nave do usuário do mapa
-            	Engine.deadShip(getShipByID(myshipID));
-            	
-            	// Envia a mensagem de DEAD para os demais players, confirmando sua remoção do jogo
-            	Multiplayer.enviarMensagem("D;");
-            	
-            	// Torna myshipID nulo
-            	myshipID = -1;
-            	
+            // Abertura da GUI
+            try {
+                frame = new GUI();
+                frame.setVisible(true);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-		});
+
+            frame.addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override
+                public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                    if (JOptionPane.showConfirmDialog(frame,
+                        "Tem certeza que deseja sair?", "Sair do Jogo?",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION){
+
+                        if (myshipID != -1) {
+                            System.out.println("[USER] Solicitada remocao da Nave " + myshipID + " do jogo");
+
+                            // Envia a mensagem de DEAD para os demais players, confirmando sua remoção do jogo
+                            Multiplayer.enviarMensagem("D;");
+
+                            // Solicita à Engine a remoção da nave do usuário do mapa
+                            Engine.deadShip(getShipByID(myshipID));
+
+                            // Encerra threads e fecha sockets
+                            Multiplayer.sair();
+                        }
+
+                        System.exit(0);
+                    }
+                }
+            });
+
+            // Criação da nave do usuário
+            Item aShip = new Item(iniX,iniY,iniOR,Constants.ITEM_SHIP);
+
+            // Inicialização da Engine
+            Engine.iniciar();
+            Engine.addShip(aShip);
+            Engine.executar();
+
+            // Como a nave foi a primeira a ser instanciada, recupera o valor de ID fornecido a ela
+            myshipID = Engine.presentItems.get(0).id;
+
+            // Inicialização das imagens
+            try {
+                bg_icon = frame.createImageIcon("/resources/icons/bg.png");
+                fb_icon = frame.createImageIcon("/resources/icons/fb2.png");
+                ss_iconl = frame.createImageIcon("/resources/icons/ss3_l.png");
+                ss_iconr = frame.createImageIcon("/resources/icons/ss3_r.png");
+                ss_iconu = frame.createImageIcon("/resources/icons/ss3_u.png");
+                ss_icond = frame.createImageIcon("/resources/icons/ss3_d.png");
+
+                ss_icon2l = frame.createImageIcon("/resources/icons/ss1_l.png");
+                ss_icon2r = frame.createImageIcon("/resources/icons/ss1_r.png");
+                ss_icon2u = frame.createImageIcon("/resources/icons/ss1_u.png");
+                ss_icon2d = frame.createImageIcon("/resources/icons/ss1_d.png");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            // Inicialização de thread que checa se a nave do usuário está viva
+            isItDeadYet();
+
+            // Inicialização de thread responsável pelo desenho e atualização do mapa
+            printTable();
+
+            // Inicialização das funcionalidades online
+            try {
+                Multiplayer.inicio(gameServer, gameServerUDP,iniX, iniY, iniOR);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+	}
+
+	// Thread responsável pelo desenho e atualização do mapa
+	private static void printTable() {
+		Thread t = new Thread(() -> {
+            // Variável da matriz correspondente ao mapa
+            Item[][] table;
+
+            int[] posicao;
+            boolean tbchange;
+
+            while(true) {
+                tbchange = false;
+                while(!tbchange) {
+                    // Checa alterações a cada 50ms (20 FPS)
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    synchronized (Engine.mutex_tablechanged) {
+                        tbchange = Engine.tablechanged;
+                    }
+                }
+                synchronized (Engine.mutex_tablechanged) {
+                    Engine.tablechanged = false;
+                }
+
+                table = new Item[Constants.SIZE_V][Constants.SIZE_H];
+                synchronized (Engine.mutex_presentItems) {
+                    for(Item it: Engine.presentItems) {
+                        posicao = it.position;
+                        table[posicao[0]][posicao[1]] = it;
+                    }
+                }
+
+                Item it;
+                for(int i = 0; i < Constants.SIZE_V; i++) {
+                    for(int j = 0; j < Constants.SIZE_H; j++) {
+                        it = table[i][j];
+                        if (it == null) {
+                            label[xy2label(i, j)].setIcon(bg_icon);
+                        } else if (it.type == Constants.ITEM_FB) {
+                            label[xy2label(i, j)].setIcon(fb_icon);
+                        } else if (it.type == Constants.ITEM_SHIP){
+                            if (it.orientation == Constants.LEFT)
+                                if (it.id == myshipID) {
+                                    label[xy2label(i, j)].setIcon(ss_iconl);
+                                } else {
+                                    label[xy2label(i, j)].setIcon(ss_icon2l);
+                                }
+                            else if (it.orientation == Constants.RIGHT)
+                                if (it.id == myshipID) {
+                                    label[xy2label(i, j)].setIcon(ss_iconr);
+                                } else {
+                                    label[xy2label(i, j)].setIcon(ss_icon2r);
+                                }
+                            else if (it.orientation == Constants.UP)
+                                if (it.id == myshipID) {
+                                    label[xy2label(i, j)].setIcon(ss_iconu);
+                                } else {
+                                    label[xy2label(i, j)].setIcon(ss_icon2u);
+                                }
+                            else if (it.orientation == Constants.DOWN)
+                                if (it.id == myshipID) {
+                                    label[xy2label(i, j)].setIcon(ss_icond);
+                                } else {
+                                    label[xy2label(i, j)].setIcon(ss_icon2d);
+                                }
+                            else {
+                                System.out.println("/nErro fatal de orientacao. " + it.orientation);
+                                System.exit(0);
+                            }
+                        } else {
+                            System.out.println("/nErro fatal de tipo de celula.");
+                            System.exit(0);
+                        }
+                    }
+                }
+
+            }
+
+
+        });
+		t.start();
+	}
+
+	// Thread que verifica se a nave do usuário local morreu
+	private static void isItDeadYet() {
+		Thread t = new Thread(() -> {
+            while (true) {
+                // A cada 50ms checa se houve colisão com nave de usuário local
+                try {
+                    Thread.sleep(50);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                if (Engine.lastcolision != null) {
+                    if (Engine.lastcolision.id == myshipID) {
+                        break;
+                    }
+                }
+            }
+
+            soundGAMEOVER.play();
+
+            System.out.println("[USER] Solicitada remocao da Nave " + myshipID + " do jogo");
+            // Solicita à Engine a remoção da nave do usuário do mapa
+            Engine.deadShip(getShipByID(myshipID));
+
+            // Envia a mensagem de DEAD para os demais players, confirmando sua remoção do jogo
+            Multiplayer.enviarMensagem("D;");
+
+            // Torna myshipID nulo
+            myshipID = -1;
+
+        });
 		t.start();
 	}
 	
@@ -288,12 +282,12 @@ public class GUI extends JFrame implements KeyListener{
 						break;
 	        case ' ':	key = Constants.SHOOT;
 						break;
-			default:	key = Constants.IDLE;
-						break;
+			default:
+                break;
 	        }
 	         
 	        short shipOrientation;
-	    	Item ship = null;
+	    	Item ship;
 	    	int[] newpos = {0,0};
 	    	
 	    	ship = getShipByID(myshipID);
@@ -337,7 +331,7 @@ public class GUI extends JFrame implements KeyListener{
 					Multiplayer.enviarMensagem("F;"+ship.position[0]+","+ship.position[1]+":"+ship.orientation);
 					
 				// Se a tecla não corresponde à orientação, rotaciona
-				} else if ((key >= Constants.LEFT) &&(key <= Constants.DOWN)) {
+				} else if (key <= Constants.DOWN) {
 					System.out.println("[USER] Solicitacao de movimento da Nave " + myshipID + " no sentido " + key);
 					Engine.moveShip(ship, ship.position, key);
 					
@@ -358,7 +352,7 @@ public class GUI extends JFrame implements KeyListener{
 	}
 
 	// Busca de item baseado no seu ID único
-	public static Item getShipByID(int shipid) {
+	static Item getShipByID(int shipid) {
 		Item found = null;
 		synchronized (Engine.mutex_presentItems) {
 			for (Item i : Engine.presentItems) {
@@ -372,7 +366,7 @@ public class GUI extends JFrame implements KeyListener{
 	}
 	
 	// Retorna um ImageIcon ou nulo, caso o caminho seja inválido
-	public ImageIcon createImageIcon(String path) throws MalformedURLException {
+    private ImageIcon createImageIcon(String path) {
 		URL imgURL = Sound.class.getResource(path);
 		
 	    if (imgURL != null) {
@@ -384,7 +378,7 @@ public class GUI extends JFrame implements KeyListener{
 	}
 	
 	// Criação do frame da GUI (gerado a partir do WindowBuilder)
-	public GUI() {
+    private GUI() {
 		setResizable(false);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 640, 640);

@@ -25,20 +25,14 @@ public class Sound {
 	 * ao construir o objeto 
 	 * 
 	 */
-	public Sound(String fileName) {
+	Sound(String fileName) {
 		try {
-//			URL url = Sound.class.getResource(fileName);
-//			File file = new File(url.toURI());
 			InputStream str = Sound.class.getResourceAsStream(fileName);
 			InputStream bufferedIn = new BufferedInputStream(str);
-			if (str != null) {
-				AudioInputStream sound = AudioSystem.getAudioInputStream(bufferedIn);
-				// load the sound into memory (a Clip)
-				clip = AudioSystem.getClip();
-				clip.open(sound);
-			} else {
-				throw new RuntimeException("Sound: file not found: " + fileName);
-			}
+			AudioInputStream sound = AudioSystem.getAudioInputStream(bufferedIn);
+			// load the sound into memory (a Clip)
+			clip = AudioSystem.getClip();
+			clip.open(sound);
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 			throw new RuntimeException("Sound: Malformed URL: " + e);
@@ -55,16 +49,16 @@ public class Sound {
 		} 
 	}
 
-	public void play() {
+	void play() {
 		clip.setFramePosition(0); // Must always rewind!
 		clip.start();
 	}
 
-	public void loop() {
+	void loop() {
 		clip.loop(Clip.LOOP_CONTINUOUSLY);
 	}
 
-	public void stop() {
+	private void stop() {
 		clip.stop();
 	}
 

@@ -14,31 +14,31 @@ import java.util.HashMap;
 public class Multiplayer {
 	
 	// Endereço IP e número de porta UDP do servidor de consulta (a serem passados como parâmetros)
-	public static InetAddress gameserverIP;
-	public static int gameserverUDP;
+	private static InetAddress gameserverIP;
+	private static int gameserverUDP;
 	
 	// Sockets utilizados para transmissão de pacotes UDP
 	// clientsock é o socket da porta que será monitorada para recepção de mensagens (port)
 	// serversock é o socket utilizado para envio de dados (e recepção, no caso do servidor)
-	public static DatagramSocket listensock, serversock;
-	public static final int portPeers = 9876;
-	public static final int sizepkg = 16;
+	private static DatagramSocket listensock, serversock;
+	private static final int portPeers = 9876;
+	private static final int sizepkg = 16;
 	
 	// Variável de controle para as threads
-	public static boolean running = true; 
+	private static boolean running = true;
 	
 	public static String mensagemRecebida;
 	
 	// Vetor com os endereços dos demais peers
-	public static ArrayList<InetAddress> onlinePlayers;
+	private static ArrayList<InetAddress> onlinePlayers;
 	
 	// Estrutura que mapeia cada endereço IP em uma Nave correspondente
-	public static HashMap<InetAddress,Item> onlineShips;
+	private static HashMap<InetAddress,Item> onlineShips;
 	
-	public static DatagramPacket pacote;
+	private static DatagramPacket pacote;
 	
 	// Inicialização das variáveis do sistema
-	public static void inicio(String servername, int serverport, int iniX, int iniY, short iniOR) throws IOException {
+	static void inicio(String servername, int serverport, int iniX, int iniY, short iniOR) throws IOException {
 
 		// Inicialização de IP/UDP do serrvidor de consulta
 		gameserverIP = InetAddress.getByName(servername);
@@ -58,7 +58,7 @@ public class Multiplayer {
 	}
 	
 	// Método para desconectar-se e fechar sockets
-	public static void sair() {
+	static void sair() {
 		running = false;
 		
 		try {
@@ -72,8 +72,8 @@ public class Multiplayer {
 	}
 	
 	// Método para conexão com o Servidor fixo, onde é solicitada a lista de endereços online
-	public static void connect2GameServer(int iniX, int iniY, short iniOR) throws IOException {
-		byte[] sendData = new byte[2];
+	private static void connect2GameServer(int iniX, int iniY, short iniOR) throws IOException {
+		byte[] sendData;
 		byte[] receiveData = new byte[1024];
 		InetAddress toSend;
 		
@@ -95,8 +95,8 @@ public class Multiplayer {
 		String enderecos = new String(receivePacket.getData()), atual;
 		System.out.println("[MULTIPLAYER] Recebido do servidor: " + enderecos);
 		
-		onlinePlayers = new ArrayList<InetAddress>();
-		onlineShips = new HashMap<InetAddress,Item>();
+		onlinePlayers = new ArrayList<>();
+		onlineShips = new HashMap<>();
 		
 		// Obtém os vários endereços possíveis na mensagem do servidor
 		while (enderecos.contains(";")) {
@@ -125,10 +125,10 @@ public class Multiplayer {
 	}
 
 	// Método envia mensagem para todos os peers online
-	public static void enviarMensagem(String msg) {
+	static void enviarMensagem(String msg) {
 		DatagramPacket sendPacket;
 
-		byte[] sendData = new byte[sizepkg];
+		byte[] sendData;
 		sendData = msg.getBytes();
 		
 		// Caso a mensagem seja DEADSHIP, enviar cópia para o servidor de consulta, para atualização
@@ -159,121 +159,117 @@ public class Multiplayer {
 	}
 	
 	// Reconhecimento das mensagens do protocolo definido recebidas pelo programa
-	public static void reconhecerMensagens(DatagramPacket packet) {	
+	private static void reconhecerMensagens(DatagramPacket packet) {
 		pacote = packet;
-		Thread t = new Thread(new Runnable() {           
-            public void run() {
-				String msg = new String(pacote.getData());
-				char cmd;
-				cmd = msg.charAt(0);
-				
-				int[] newpos = new int[2];
-				short or;
-				Item newitem;
-				
-				switch(cmd) {
-				
-				// Comando ADDPLAYER, atualiza posição de nova Nave e responde com a posição da Nave local
-				case 'A':
-					
-					newpos[0] = Integer.parseInt(msg.substring(msg.indexOf(';')+1, msg.indexOf(',')));
-					newpos[1] = Integer.parseInt(msg.substring(msg.indexOf(',')+1, msg.indexOf(':')));
-					or = Short.parseShort(msg.substring(msg.indexOf(':')+1, msg.indexOf(':')+2));
-					
-					System.out.println("[MULTIPLAYER] Novo player em (" + newpos[0] + "," + newpos[1] + "): " + or);
-					
-					if (onlineShips.containsKey(pacote.getAddress())) {
-						Engine.moveShip(onlineShips.get(pacote.getAddress()), newpos, or);
-					} else {
-						onlinePlayers.add(pacote.getAddress());
-						newitem = new Item(newpos[0],newpos[1],or,Constants.ITEM_SHIP);
-						onlineShips.put(pacote.getAddress(), newitem);
-						Engine.addShip(newitem);				
-					}
-					
-					enviarMensagem("P;"+GUI.getShipByID(GUI.myshipID).position[0]+","+GUI.getShipByID(GUI.myshipID).position[1]+":"+GUI.getShipByID(GUI.myshipID).orientation);
-					
-					break;
-					
-				// Comando POSITION, atualiza posição de uma Nave
-				case 'P':
-					newpos[0] = Integer.parseInt(msg.substring(msg.indexOf(';')+1, msg.indexOf(',')));
-					newpos[1] = Integer.parseInt(msg.substring(msg.indexOf(',')+1, msg.indexOf(':')));
-					or = Short.parseShort(msg.substring(msg.indexOf(':')+1, msg.indexOf(':')+2));
-								
-					if (onlineShips.containsKey(pacote.getAddress())) {
-						System.out.println("[MULTIPLAYER] Solicitacao de movimento da Nave " + onlineShips.get(pacote.getAddress()).id + " no sentido " + or);
-						Engine.moveShip(onlineShips.get(pacote.getAddress()), newpos, or);				
-					} else {
-						onlinePlayers.add(pacote.getAddress());
-						newitem = new Item(newpos[0],newpos[1],or,Constants.ITEM_SHIP);
-						onlineShips.put(pacote.getAddress(), newitem);
-						Engine.addShip(newitem);
-					}			
-					break;
-					
-				// Comando FIREBALL, cria fireball na posição desejada
-				case 'F':			
-					newpos[0] = Integer.parseInt(msg.substring(msg.indexOf(';')+1, msg.indexOf(',')));
-					newpos[1] = Integer.parseInt(msg.substring(msg.indexOf(',')+1, msg.indexOf(':')));
-					or = Short.parseShort(msg.substring(msg.indexOf(':')+1, msg.indexOf(':')+2));
-					System.out.println("[MULTIPLAYER] Solicitacao de fireball da nave " + onlineShips.get(pacote.getAddress()).id + " em (" + newpos[0] + "," + newpos[1] + ")");
-					newitem = new Item(newpos[0],newpos[1],or,Constants.ITEM_FB);
-					Engine.newFireball(newitem);
-								
-					break;
-				
-				// Comando DEADSHIP, avisa aos players que uma Nave foi removida do jogo
-				case 'D':
-					if (onlineShips.get(pacote.getAddress()) != null) {
-						System.out.println("[MULTIPLAYER] Solicitada remocao da Nave " + onlineShips.get(pacote.getAddress()).id + " do jogo");
-						onlinePlayers.remove(pacote.getAddress());
-						
-						Engine.deadShip(onlineShips.get(pacote.getAddress()));
-						onlineShips.remove(pacote.getAddress());
-					}			
-					break;
-					
-				default:
-					System.out.println("[MULTIPLAYER] Comando de protocolo nao reconhecido: " + cmd);
-					break;
-					
+		Thread t = new Thread(() -> {
+			String msg = new String(pacote.getData());
+			char cmd;
+			cmd = msg.charAt(0);
+
+			int[] newpos = new int[2];
+			short or;
+			Item newitem;
+
+			switch(cmd) {
+
+			// Comando ADDPLAYER, atualiza posição de nova Nave e responde com a posição da Nave local
+			case 'A':
+
+				newpos[0] = Integer.parseInt(msg.substring(msg.indexOf(';')+1, msg.indexOf(',')));
+				newpos[1] = Integer.parseInt(msg.substring(msg.indexOf(',')+1, msg.indexOf(':')));
+				or = Short.parseShort(msg.substring(msg.indexOf(':')+1, msg.indexOf(':')+2));
+
+				System.out.println("[MULTIPLAYER] Novo player em (" + newpos[0] + "," + newpos[1] + "): " + or);
+
+				if (onlineShips.containsKey(pacote.getAddress())) {
+					Engine.moveShip(onlineShips.get(pacote.getAddress()), newpos, or);
+				} else {
+					onlinePlayers.add(pacote.getAddress());
+					newitem = new Item(newpos[0],newpos[1],or,Constants.ITEM_SHIP);
+					onlineShips.put(pacote.getAddress(), newitem);
+					Engine.addShip(newitem);
 				}
-            } 
-        });
+
+				enviarMensagem("P;"+GUI.getShipByID(GUI.myshipID).position[0]+","+GUI.getShipByID(GUI.myshipID).position[1]+":"+GUI.getShipByID(GUI.myshipID).orientation);
+
+				break;
+
+			// Comando POSITION, atualiza posição de uma Nave
+			case 'P':
+				newpos[0] = Integer.parseInt(msg.substring(msg.indexOf(';')+1, msg.indexOf(',')));
+				newpos[1] = Integer.parseInt(msg.substring(msg.indexOf(',')+1, msg.indexOf(':')));
+				or = Short.parseShort(msg.substring(msg.indexOf(':')+1, msg.indexOf(':')+2));
+
+				if (onlineShips.containsKey(pacote.getAddress())) {
+					System.out.println("[MULTIPLAYER] Solicitacao de movimento da Nave " + onlineShips.get(pacote.getAddress()).id + " no sentido " + or);
+					Engine.moveShip(onlineShips.get(pacote.getAddress()), newpos, or);
+				} else {
+					onlinePlayers.add(pacote.getAddress());
+					newitem = new Item(newpos[0],newpos[1],or,Constants.ITEM_SHIP);
+					onlineShips.put(pacote.getAddress(), newitem);
+					Engine.addShip(newitem);
+				}
+				break;
+
+			// Comando FIREBALL, cria fireball na posição desejada
+			case 'F':
+				newpos[0] = Integer.parseInt(msg.substring(msg.indexOf(';')+1, msg.indexOf(',')));
+				newpos[1] = Integer.parseInt(msg.substring(msg.indexOf(',')+1, msg.indexOf(':')));
+				or = Short.parseShort(msg.substring(msg.indexOf(':')+1, msg.indexOf(':')+2));
+				System.out.println("[MULTIPLAYER] Solicitacao de fireball da nave " + onlineShips.get(pacote.getAddress()).id + " em (" + newpos[0] + "," + newpos[1] + ")");
+				newitem = new Item(newpos[0],newpos[1],or,Constants.ITEM_FB);
+				Engine.newFireball(newitem);
+
+				break;
+
+			// Comando DEADSHIP, avisa aos players que uma Nave foi removida do jogo
+			case 'D':
+				if (onlineShips.get(pacote.getAddress()) != null) {
+					System.out.println("[MULTIPLAYER] Solicitada remocao da Nave " + onlineShips.get(pacote.getAddress()).id + " do jogo");
+					onlinePlayers.remove(pacote.getAddress());
+
+					Engine.deadShip(onlineShips.get(pacote.getAddress()));
+					onlineShips.remove(pacote.getAddress());
+				}
+				break;
+
+			default:
+				System.out.println("[MULTIPLAYER] Comando de protocolo nao reconhecido: " + cmd);
+				break;
+
+			}
+		});
         t.start();
 	}
 	
 	// Thread responsável por escutar na porta UDP padrão entre peers, aguardando o recebimento de novas mensagens	
-	public static void receberMensagens() {
-		Thread t = new Thread(new Runnable() {           
-            public void run() {
-            	DatagramPacket pacote;
-            	byte[] rcvData;
-            	
-            	// Checa a cada 25ms se a thread ainda deve rodar
-            	try {
-					listensock.setSoTimeout(25);
-				} catch (SocketException e1) {
-					e1.printStackTrace();
+	private static void receberMensagens() {
+		Thread t = new Thread(() -> {
+			DatagramPacket pacote;
+			byte[] rcvData;
+
+			// Checa a cada 25ms se a thread ainda deve rodar
+			try {
+				listensock.setSoTimeout(25);
+			} catch (SocketException e1) {
+				e1.printStackTrace();
+			}
+
+			while (running) {
+				rcvData = new byte[sizepkg];
+				pacote = new DatagramPacket(rcvData, rcvData.length);
+
+				// Escuta o socket padrão para mensagens enviadas pelos peers, e delega o recnhecimento das mensagens p/ outra thread
+				try {
+					listensock.receive(pacote);
+					reconhecerMensagens(pacote);
+				} catch (IOException e) {
+					if (!(e instanceof SocketTimeoutException)) {
+						e.printStackTrace();
+					}
 				}
-            	
-            	while (running) {
-            		rcvData = new byte[sizepkg];
-            		pacote = new DatagramPacket(rcvData, rcvData.length);
-            		
-            		// Escuta o socket padrão para mensagens enviadas pelos peers, e delega o recnhecimento das mensagens p/ outra thread
-            		try {
-						listensock.receive(pacote);
-						reconhecerMensagens(pacote);
-					} catch (IOException e) {
-						if (!(e instanceof SocketTimeoutException)) {
-							e.printStackTrace();
-						}
-					}            		
-            	}
-            } 
-        });
+			}
+		});
         t.start();
 	}
 }

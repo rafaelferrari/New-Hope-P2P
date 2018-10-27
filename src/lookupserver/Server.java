@@ -5,35 +5,25 @@ import java.util.ArrayList;
 class Server {
 	
 	// Porta utilizada para conexão com o Servidor
-	public static final int port = 6666;
+	private static final int port = 6666;
 	
 	// Vetor contendo os IP dos usuários atualmente conectados 
-	public static ArrayList<String> connectedUsers;
+	private static ArrayList<String> connectedUsers;
 	
 	// Socket utilizado para leitura e escrita dos dados
-	public static DatagramSocket serverSocket;
-	
-	// Classe para garantir o bom funcionamento do servidor ao desligar
-	public void attachShutDownHook(){
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			@Override
-			public void run() {
-				serverSocket.close();
-				System.out.println("[GAMESERVER] Servidor finalizado.");
-			}
-		});
-	}
+	static DatagramSocket serverSocket;
 	
 	// Execução sequencial do programa
 	public static void main(String[] args) throws Exception {
-		
+		Runtime.getRuntime().addShutdownHook(new Hook());
+
 		// Inicialização de variáveis globais
 		serverSocket = new DatagramSocket(port);
-		connectedUsers = new ArrayList<String>();
+		connectedUsers = new ArrayList<>();
 		
 		// Vetores contendo os dados em formato de bytes
 		byte[] receiveData = new byte[2];
-		byte[] sendData = new byte[1024];
+		byte[] sendData;
 		
 		// Strings contendo mensagem recebida, IP do emissor e mensagem a ser enviada
 		String sentence, sender, message;
@@ -64,7 +54,7 @@ class Server {
 			// Uma vez recebido um pacote, recupera suas informações (dados, IP do remetente)
 			sentence = new String( receivePacket.getData());
 			IPAddress = receivePacket.getAddress();
-			sender = new String(IPAddress.toString());
+			sender = IPAddress.toString();
 			sender = sender.substring(1);			
 
 			// Caso a mensagem seja um W (WHO, mensagem solicitando a lista de nós conectados)
